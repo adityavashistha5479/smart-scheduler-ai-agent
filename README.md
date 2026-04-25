@@ -6,7 +6,7 @@ An interactive, voice-enabled AI scheduling assistant built with **Next.js**, **
 *   **Frontend Web App:** [https://smart-scheduler-frontend-269634872417.asia-southeast2.run.app](https://smart-scheduler-frontend-269634872417.asia-southeast2.run.app)
 *   **Backend WebSocket API:** `wss://smart-scheduler-backend-269634872417.asia-southeast2.run.app/ws`
 
-## Core Capabilities (Assignment Requirements Achieved)
+## Core Capabilities
 
 *   **Ultra-Low Latency Voice Engine (<500ms):** Implemented raw PCM16 audio streaming over WebSockets directly to the OpenAI Realtime API. By bypassing traditional "waterfall" architectures (STT -> LLM -> TTS), the agent achieves near-instantaneous human-like conversational turnaround times, easily surpassing the <800ms benchmark.
 *   **Agentic Logic & Stateful Memory:** Engineered a SQLite database layer that persists cross-session user preferences (e.g., standard meeting durations and preferred times). This allows the agent to handle highly ambiguous requests like *"schedule our usual sync-up"* without asking redundant clarifying questions.
