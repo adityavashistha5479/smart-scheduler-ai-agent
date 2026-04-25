@@ -144,11 +144,22 @@ async def openai_realtime_bridge(client_websocket):
             db.commit()
             db.refresh(user_pref)
         
-        user_context_prompt = f"\n\nUser Preferences Context:\n- Standard meeting duration: {user_pref.standard_meeting_duration} minutes.\n- Preferred time of day: {user_pref.preferred_time_of_day}.\n- Additional context: {user_pref.memory_context}\nUse this context when the user refers to their 'usual' meeting or 'normal' preferences."
+        # Wait for client initialization to get timezone
+        first_msg = await client_websocket.receive_text()
+        first_data = json.loads(first_msg)
+        user_timezone = "UTC"
+        if first_data.get("type") == "client_init":
+            user_timezone = first_data.get("timezone", "UTC")
+        
+        user_context_prompt = f"\n\nUser Context:\n- Timezone: {user_timezone} (CRITICAL: All times requested by the user are in this timezone. Convert to UTC when calling calendar tools if necessary, but assume the user speaks in {user_timezone}).\n- Standard meeting duration: {user_pref.standard_meeting_duration} minutes.\n- Preferred time of day: {user_pref.preferred_time_of_day}.\n- Additional context: {user_pref.memory_context}\nUse this context when the user refers to their 'usual' meeting."
         db.close()
 
         async with websockets.connect(URL, additional_headers=headers) as openai_ws:
             print("Connected to OpenAI Realtime")
+            
+            # If the first message wasn't client_init, forward it to OpenAI
+            if first_data.get("type") != "client_init":
+                await openai_ws.send(first_msg)
             
             # Initialize session
             init_event = {
