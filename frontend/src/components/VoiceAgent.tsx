@@ -43,7 +43,11 @@ export default function VoiceAgent() {
   const connect = async () => {
     try {
       setStatus("Connecting...");
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const isProd = process.env.NODE_ENV === 'production';
+      const defaultUrl = isProd 
+        ? 'wss://smart-scheduler-backend-269634872417.asia-southeast2.run.app/ws' 
+        : 'ws://localhost:8000/ws';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
       ws.current = new WebSocket(wsUrl);
       
       ws.current.onopen = () => {
