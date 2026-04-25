@@ -34,12 +34,13 @@ jobs:
       - name: Deploy Backend to Cloud Run
         run: |
           cd backend
+          echo '${{ secrets.GCP_SA_KEY }}' > credentials.json
           gcloud run deploy ${{ env.BACKEND_SERVICE }} \
             --source . \
             --region ${{ env.REGION }} \
             --port 8080 \
             --allow-unauthenticated \
-            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},TARGET_CALENDAR_ID=${{ secrets.TARGET_CALENDAR_ID }}"
 
   deploy-frontend:
     name: Deploy Frontend
