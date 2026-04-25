@@ -67,4 +67,5 @@ jobs:
             --region ${{ env.REGION }} \
             --port 8080 \
             --allow-unauthenticated \
-            --set-env-vars="NEXT_PUBLIC_WS_URL=${{ env.BACKEND_WS_URL }}"
+            --set-env-vars="NEXT_PUBLIC_WS_URL=${{ env.BACKEND_WS_URL }}" \
+            --set-build-env-vars="NEXT_PUBLIC_WS_URL=${{ env.BACKEND_WS_URL }}"
