@@ -14,3 +14,6 @@ frontend/.env*
 # General OS files
 .DS_Store
 Thumbs.db
+
+# Secrets
+gcp-key.json

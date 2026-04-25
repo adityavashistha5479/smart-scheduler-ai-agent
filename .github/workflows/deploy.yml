@@ -1,0 +1,70 @@
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: smart-scheduler-ai-12345
+  REGION: asia-southeast2
+  BACKEND_SERVICE: smart-scheduler-backend
+  FRONTEND_SERVICE: smart-scheduler-frontend
+  # The backend URL is deterministic, so we can hardcode the known WS URL here
+  BACKEND_WS_URL: wss://smart-scheduler-backend-269634872417.asia-southeast2.run.app/ws
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Deploy Backend to Cloud Run
+        run: |
+          cd backend
+          gcloud run deploy ${{ env.BACKEND_SERVICE }} \
+            --source . \
+            --region ${{ env.REGION }} \
+            --port 8080 \
+            --allow-unauthenticated \
+            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-backend # Wait for backend to deploy first
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Deploy Frontend to Cloud Run
+        run: |
+          cd frontend
+          gcloud run deploy ${{ env.FRONTEND_SERVICE }} \
+            --source . \
+            --region ${{ env.REGION }} \
+            --port 8080 \
+            --allow-unauthenticated \
+            --set-env-vars="NEXT_PUBLIC_WS_URL=${{ env.BACKEND_WS_URL }}"
