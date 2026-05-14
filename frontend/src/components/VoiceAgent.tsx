@@ -50,14 +50,16 @@ export default function VoiceAgent() {
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
       ws.current = new WebSocket(wsUrl);
       
-      ws.current.onopen = () => {
+      ws.current.onopen = async () => {
         setIsConnected(true);
-        setStatus("Connected. Tap to speak.");
+        setStatus("Connected. Listening...");
         // Send timezone context to backend for accurate scheduling
         ws.current?.send(JSON.stringify({
           type: "client_init",
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         }));
+        // Automatically start recording when connected
+        await startRecording();
       };
 
       ws.current.onmessage = async (event) => {
@@ -67,7 +69,9 @@ export default function VoiceAgent() {
         } else if (data.type === 'response.function_call_arguments.done') {
           setStatus(`Agent is checking: ${data.name}...`);
         } else if (data.type === 'response.done') {
-          setStatus("Connected. Tap to speak.");
+          setStatus("Listening...");
+        } else if (data.type === 'input_audio_buffer.speech_started') {
+          setStatus("Agent hears you...");
         } else if (data.type === 'error') {
           setStatus(`Error: ${data.error?.message || data.message || "Unknown error"}`);
         } else if (data.type === 'meeting_scheduled') {
@@ -80,12 +84,13 @@ export default function VoiceAgent() {
         setIsConnected(false);
         setIsRecording(false);
         stopRecording();
-        setStatus("Disconnected");
+        setStatus("Disconnected. Click to connect.");
       };
 
     } catch (error) {
       console.error(error);
       setStatus("Connection failed");
+      setIsConnected(false);
     }
   };
 
@@ -183,20 +188,17 @@ export default function VoiceAgent() {
     }
   };
 
-  const toggleRecording = async () => {
-    if (!isConnected) {
-      await connect();
-      return;
-    }
-
-    if (isRecording) {
+  const toggleConnection = async () => {
+    if (isConnected) {
+      // Disconnect
+      if (ws.current) {
+        ws.current.close();
+      }
       stopRecording();
-      setStatus("Connected. Tap to speak.");
-      // Commit audio
-      ws.current?.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-      ws.current?.send(JSON.stringify({ type: "response.create" }));
+      setIsConnected(false);
     } else {
-      await startRecording();
+      // Connect and start continuous VAD session
+      await connect();
     }
   };
 
@@ -210,19 +212,17 @@ export default function VoiceAgent() {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={toggleRecording}
+        onClick={toggleConnection}
         className={`z-10 w-32 h-32 rounded-full flex items-center justify-center shadow-lg transition-colors cursor-pointer ${
-          isRecording 
+          isConnected 
             ? 'bg-red-500 hover:bg-red-600 shadow-red-500/50' 
-            : isConnected
-              ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/50'
-              : 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/50'
+            : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/50'
         }`}
       >
-        {isRecording ? (
-          <Mic className="w-12 h-12 text-white animate-pulse" />
-        ) : (
+        {isConnected ? (
           <MicOff className="w-12 h-12 text-white" />
+        ) : (
+          <Mic className="w-12 h-12 text-white animate-pulse" />
         )}
       </motion.button>
 
@@ -232,7 +232,7 @@ export default function VoiceAgent() {
           <motion.div
             key={i}
             animate={{
-              height: isRecording ? ["20%", "100%", "20%"] : "20%",
+              height: isConnected ? ["20%", "100%", "20%"] : "20%",
             }}
             transition={{
               duration: 0.8,
@@ -240,14 +240,14 @@ export default function VoiceAgent() {
               delay: i * 0.1,
               ease: "easeInOut"
             }}
-            className={`w-2 rounded-full ${isRecording ? 'bg-red-400' : 'bg-zinc-600'}`}
+            className={`w-2 rounded-full ${isConnected ? 'bg-red-400' : 'bg-zinc-600'}`}
             style={{ height: '20%' }}
           />
         ))}
       </div>
 
       {/* Glow Effect */}
-      {isRecording && (
+      {isConnected && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}

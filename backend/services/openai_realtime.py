@@ -169,7 +169,7 @@ async def openai_realtime_bridge(client_websocket):
                     "voice": "alloy",
                     "tools": TOOLS,
                     "tool_choice": "auto",
-                    "turn_detection": None
+                    "turn_detection": {"type": "server_vad"}
                 }
             }
             await openai_ws.send(json.dumps(init_event))
